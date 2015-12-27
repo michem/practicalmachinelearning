@@ -68,49 +68,133 @@ img {
 </div>
 
 
-<!-- TODO Publish on github -->
-<!-- TODO a gh-pages branch so the HTML page can be viewed online -->
 <!-- TODO Check < 2000 words -->
 <!-- TODO Check <5 figures -->
-<div id="description" class="section level1">
-<h1>Description</h1>
-<p>Activity monitors can not only quantify how much of an activity people do, but also how well they do it.</p>
-<p>In this analysis the goal is to build a machine learning algorithm to predict activity quality from the activity monitors.</p>
+<div id="introduction---project-understanding" class="section level1">
+<h1>Introduction - Project understanding</h1>
+<p>In this analysis the goal is to build a machine learning algorithm to predict activity quality from activity monitors. Activity monitors can not only quantify how much of an activity people do, but also how well they do it.</p>
+<p>Groupware @ LES calls this Human Activity Recognition - HAR and has gathered data on the subject. We will use this to build a model to assess the quality of barbell lift movements.</p>
+<p>Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E).</p>
+<p>Read more: <a href="http://groupware.les.inf.puc-rio.br/har" class="uri">http://groupware.les.inf.puc-rio.br/har</a> (see the section on the Weight Lifting Exercise Dataset)</p>
 </div>
-<div id="background" class="section level1">
-<h1>Background</h1>
-<p>Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: <a href="http://groupware.les.inf.puc-rio.br/har" class="uri">http://groupware.les.inf.puc-rio.br/har</a> (see the section on the Weight Lifting Exercise Dataset).</p>
+<div id="data-understanding" class="section level1">
+<h1>Data Understanding</h1>
+<p>The data is delivered from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.</p>
+<p>The data gathered by HAR is available in training and test csv’s.</p>
+<pre class="r"><code>train.url &lt;- 'https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv'
+train &lt;- read.csv(url(train.url), na.strings = c(&quot;NA&quot;, &quot;&quot;))
+
+validate.url &lt;- 'https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv'
+validate &lt;- read.csv(url(validate.url), na.strings = c(&quot;NA&quot;, &quot;&quot;))</code></pre>
+<p>The training data set contains the ‘classe’ variable which is a classification of the quality of execution of the barbell lift.</p>
+<pre class="r"><code>table(train$classe)</code></pre>
+<pre><code>## 
+##    A    B    C    D    E 
+## 5580 3797 3422 3216 3607</code></pre>
 </div>
-<div id="data" class="section level1">
-<h1>Data</h1>
-<p>The training data for this project are available here:</p>
-<p><a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv" class="uri">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv</a></p>
-<p>The test data are available here:</p>
-<p><a href="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv" class="uri">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv</a></p>
-<p>The data for this project come from this source: <a href="http://groupware.les.inf.puc-rio.br/har" class="uri">http://groupware.les.inf.puc-rio.br/har</a>. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.</p>
-<pre class="r"><code># getting the data</code></pre>
+<div id="data-preparation" class="section level1">
+<h1>Data Preparation</h1>
+<p>Now the data is prepared for the modelling. This means: - Selecting the attributes that can be used in the modelling - Splitting the data in a training set and a cross validation testing set</p>
+<div id="attribute-selection" class="section level2">
+<h2>Attribute selection</h2>
+<p>Selecting the attributes for the model means two things: 1. Ignoring the attributes where there are values in few observations 2. Ignoring the identifying attributs (that are not related to movement)</p>
+<div id="attributes-with-few-observations" class="section level3">
+<h3>Attributes with few observations</h3>
+<p>For the model we ignore observations that have less than 10% of observations.</p>
+<pre class="r"><code>obs.NA &lt;- colMeans(is.na(train))
+obs.NA.few &lt;- obs.NA[obs.NA &gt; 0.90]
+length(obs.NA.few)</code></pre>
+<pre><code>## [1] 100</code></pre>
+<p>Of the 160 attributes, 100 have fewer than 10% observations.</p>
+<pre class="r"><code>train &lt;- train[,!(names(train) %in% names(obs.NA.few))]
+validate &lt;- validate[,!(names(validate) %in% names(obs.NA.few))]
+dim(train)</code></pre>
+<pre><code>## [1] 19622    60</code></pre>
+<pre class="r"><code>dim(validate)</code></pre>
+<pre><code>## [1] 20 60</code></pre>
 </div>
-<div id="building-the-model" class="section level1">
-<h1>Building the model</h1>
-<!-- based on the "classe" variable in the training set. You may use any of the other variables to predict with. -->
+<div id="ignoring-the-identifiers" class="section level3">
+<h3>Ignoring the identifiers</h3>
+<pre class="r"><code>train &lt;- train[,7:60]
+validate &lt;- validate[,7:60]</code></pre>
 </div>
-<div id="cross-validation" class="section level1">
-<h1>Cross validation</h1>
-<!-- expect the out of sample error to be and estimate the error appropriately with cross-validation? -->
+<div id="training-and-testing-set" class="section level3">
+<h3>Training and testing set</h3>
+<p>The training data will be split into a training and testing data set.</p>
+<pre class="r"><code>library(caret)</code></pre>
+<pre class="r"><code>set.seed(1307)
+train.partition &lt;- createDataPartition(y=train$classe, p=0.6, list=FALSE)
+training &lt;- train[train.partition,]
+testing &lt;- train[-train.partition,]
+dim(training)</code></pre>
+<pre><code>## [1] 11776    54</code></pre>
+<pre class="r"><code>dim(testing)</code></pre>
+<pre><code>## [1] 7846   54</code></pre>
 </div>
-<div id="applying-the-model" class="section level1">
-<h1>Applying the model</h1>
-<!--  TODO apply your machine learning algorithm to the 20 test cases available in the test data -->
 </div>
-<div id="submission-files" class="section level1">
-<h1>Submission Files</h1>
+</div>
+<div id="modelling" class="section level1">
+<h1>Modelling</h1>
+<p>The classe variable in the training set will be used to derive a model that predicts the values. This is a typical problem for a random forest model.</p>
+<p>First we build the model.</p>
+<pre class="r"><code>model.RF &lt;- randomForest(classe~., data=training)</code></pre>
+</div>
+<div id="evaluation" class="section level1">
+<h1>Evaluation</h1>
+<div id="cross-validaton" class="section level2">
+<h2>Cross validaton</h2>
+<p>Then we use the model to predict the values of the testing data set. The outcome is visualised in a confusion matrix.</p>
+<pre class="r"><code>predict.RF &lt;- predict(model.RF, newdata=testing)
+confusionMatrix(predict.RF  , testing$classe)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 2232    3    0    0    0
+##          B    0 1513    4    0    0
+##          C    0    2 1364   14    0
+##          D    0    0    0 1271    0
+##          E    0    0    0    1 1442
+## 
+## Overall Statistics
+##                                          
+##                Accuracy : 0.9969         
+##                  95% CI : (0.9955, 0.998)
+##     No Information Rate : 0.2845         
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16      
+##                                          
+##                   Kappa : 0.9961         
+##  Mcnemar's Test P-Value : NA             
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            1.0000   0.9967   0.9971   0.9883   1.0000
+## Specificity            0.9995   0.9994   0.9975   1.0000   0.9998
+## Pos Pred Value         0.9987   0.9974   0.9884   1.0000   0.9993
+## Neg Pred Value         1.0000   0.9992   0.9994   0.9977   1.0000
+## Prevalence             0.2845   0.1935   0.1744   0.1639   0.1838
+## Detection Rate         0.2845   0.1928   0.1738   0.1620   0.1838
+## Detection Prevalence   0.2849   0.1933   0.1759   0.1620   0.1839
+## Balanced Accuracy      0.9997   0.9980   0.9973   0.9942   0.9999</code></pre>
+<p>The model has an accuracy of 0.9966. The accuracy is high for all classes.</p>
+</div>
+<div id="applying-the-model" class="section level2">
+<h2>Applying the model</h2>
+<pre class="r"><code>predict.RF.final &lt;- predict(model.RF, newdata=validate)</code></pre>
+</div>
+</div>
+<div id="deployment" class="section level1">
+<h1>Deployment</h1>
+<p>Deployment for this project is creating submission files in which the 20 test cases are validated against the model.</p>
 <pre class="r"><code>pml_write_files = function(x){
   n = length(x)
   for(i in 1:n){
     filename = paste0(&quot;problem_id_&quot;,i,&quot;.txt&quot;)
     write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
   }
-}</code></pre>
+}
+pml_write_files(predict.RF.final)</code></pre>
 </div>
 
 
